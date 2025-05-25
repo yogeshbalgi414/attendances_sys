@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMS Login</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <div>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                    Attendance Management System
+                </h2>
+                <p class="mt-2 text-center text-sm text-gray-600">
+                    Sign in to your account
+                </p>
+            </div>
+            <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <div class="mt-1">
+                            <input id="username" name="username" type="text" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <div class="mt-1">
+                            <input id="password" name="password" type="password" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Sign in
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-6">
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500">
+                                Don't have an account?
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <button id="showSignupBtn" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Sign up
+                        </button>
+                    </div>
+                </div>
+
+                <div id="signupForm" class="hidden mt-6 border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Create a new account</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="newUsername" class="block text-sm font-medium text-gray-700">Username</label>
+                            <div class="mt-1">
+                                <input id="newUsername" name="newUsername" type="text" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <div class="mt-1">
+                                <input id="email" name="email" type="email" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="newPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                            <div class="mt-1">
+                                <input id="newPassword" name="newPassword" type="password" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <button id="signupBtn" type="button" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                Create Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="hidden mt-4 p-4 rounded-md"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show signup form when button is clicked
+            document.getElementById('showSignupBtn').addEventListener('click', function() {
+                document.getElementById('signupForm').classList.toggle('hidden');
+            });
+
+            // Handle login form submission
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                fetch('/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('statusMessage');
+                    
+                    if (data.success) {
+                        statusDiv.textContent = 'Login successful. Redirecting...';
+                        statusDiv.classList.remove('hidden', 'bg-red-100', 'text-red-800');
+                        statusDiv.classList.add('bg-green-100', 'text-green-800');
+                        
+                        // Redirect based on role
+                        if (data.role === 'student') {
+                            window.location.href = `/student/${data.user_id}`;
+                        } else if (data.role === 'faculty') {
+                            window.location.href = `/faculty/${data.user_id}`;
+                        } else if (data.role === 'hod') {
+                            window.location.href = '/hod';
+                        }
+                    } else {
+                        statusDiv.textContent = data.message || 'Login failed. Please check your credentials.';
+                        statusDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800');
+                        statusDiv.classList.add('bg-red-100', 'text-red-800');
+                    }
+                    
+                    statusDiv.classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const statusDiv = document.getElementById('statusMessage');
+                    statusDiv.textContent = 'An error occurred. Please try again.';
+                    statusDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800');
+                    statusDiv.classList.add('bg-red-100', 'text-red-800');
+                });
+            });
+
+            // Handle signup button click
+            document.getElementById('signupBtn').addEventListener('click', function() {
+                const username = document.getElementById('newUsername').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('newPassword').value;
+                
+                fetch('/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, email, password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('statusMessage');
+                    
+                    if (data.success) {
+                        statusDiv.textContent = 'Account created successfully. You can now login.';
+                        statusDiv.classList.remove('hidden', 'bg-red-100', 'text-red-800');
+                        statusDiv.classList.add('bg-green-100', 'text-green-800');
+                        
+                        // Clear form and hide it
+                        document.getElementById('newUsername').value = '';
+                        document.getElementById('email').value = '';
+                        document.getElementById('newPassword').value = '';
+                        document.getElementById('signupForm').classList.add('hidden');
+                    } else {
+                        statusDiv.textContent = data.message || 'Registration failed. Please try again.';
+                        statusDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800');
+                        statusDiv.classList.add('bg-red-100', 'text-red-800');
+                    }
+                    
+                    statusDiv.classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const statusDiv = document.getElementById('statusMessage');
+                    statusDiv.textContent = 'An error occurred. Please try again.';
+                    statusDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800');
+                    statusDiv.classList.add('bg-red-100', 'text-red-800');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
