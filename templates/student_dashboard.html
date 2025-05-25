@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        .dashboard-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            display: inline-flex;
+            align-items: center;
+        }
+        .status-good {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: rgb(16, 185, 129);
+        }
+        .status-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: rgb(245, 158, 11);
+        }
+        .status-risk {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: rgb(239, 68, 68);
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+        }
+        thead {
+            background: linear-gradient(to right, #3b82f6, #9333ea);
+            color: white;
+        }
+        thead th:first-child {
+            border-top-left-radius: 0.5rem;
+        }
+        thead th:last-child {
+            border-top-right-radius: 0.5rem;
+        }
+        tbody tr:nth-child(even) {
+            background-color: rgba(243, 244, 246, 0.5);
+        }
+        tbody tr:hover {
+            background-color: rgba(243, 244, 246, 1);
+        }
+        .progress-bar {
+            height: 8px;
+            border-radius: 9999px;
+            overflow: hidden;
+            background-color: #e5e7eb;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 9999px;
+        }
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .logout-button-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    
+    .logout-button {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        background-color: #f3f4f6;
+        color: #111827;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .logout-button:hover {
+        background-color: #e5e7eb;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .logout-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        color: #4b5563;
+    }
+    
+    /* For dark themes - add this class to the logout-button if needed */
+    .logout-button.dark {
+        background-color: #374151;
+        color: #f9fafb;
+        border-color: #4b5563;
+    }
+    
+    .logout-button.dark:hover {
+        background-color: #4b5563;
+    }
+    
+    .logout-button.dark .logout-icon {
+        color: #d1d5db;
+    }
+    </style>
+</head>
+<body>
+    <div class="logout-button-container">
+    <a href="/logout" class="logout-button">
+        <svg xmlns="http://www.w3.org/2000/svg" class="logout-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        <span>Logout</span>
+    </a>
+</div>
+    <div class="container mx-auto p-4 md:p-6">
+        <!-- Header with Student Info -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 p-6 dashboard-card">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Welcome, <span id="student-name" class="text-blue-600">{{ student.name }}</span></h1>
+                <p class="text-gray-600" id="student-program">Computer Science</p>
+            </div>
+            <div class="text-center mt-4 md:mt-0">
+                <div class="text-5xl font-bold text-blue-600" id="overall-attendance">85%</div>
+                <p class="text-gray-600">Overall Attendance</p>
+                <div class="mt-2">
+                    <span class="status-badge status-good" id="overall-status">GOOD</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats Cards -->
+        <div class="header-stats mb-6">
+            <div class="dashboard-card p-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Classes</h3>
+                <p class="text-3xl font-bold text-gray-800" id="total-classes">225</p>
+                <p class="text-sm text-gray-500">Across all subjects</p>
+            </div>
+            <div class="dashboard-card p-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Attendance Rate</h3>
+                <p class="text-3xl font-bold text-blue-600" id="attended-classes">85%</p>
+                <p class="text-sm text-gray-500">Average attendance</p>
+            </div>
+            <div class="dashboard-card p-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Absent Days</h3>
+                <p class="text-3xl font-bold text-red-600" id="absent-days">24</p>
+                <p class="text-sm text-gray-500">Total absent days</p>
+            </div>
+            <div class="dashboard-card p-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Current Streak</h3>
+                <p class="text-3xl font-bold text-green-600" id="current-streak">3</p>
+                <p class="text-sm text-gray-500">Consecutive days present</p>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Attendance Details Table -->
+            <div class="lg:col-span-2">
+                <div class="dashboard-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gray-800">Attendance Details</h2>
+                        <div>
+                            <select id="period-filter" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2">
+                                <option value="all">All Time</option>
+                                <option value="semester">This Semester</option>
+                                <option value="month">This Month</option>
+                                <option value="week">This Week</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Attended</th>
+                                    <th>Total</th>
+                                    <th>Percentage</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-data">
+                                <!-- Table rows will be dynamically populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Summary -->
+            <div class="lg:col-span-1">
+                <div class="dashboard-card p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Status Summary</h2>
+                    <div>
+                        <div class="mb-4">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-700">Overall Progress</span>
+                                <span class="text-gray-700" id="progress-percentage">85%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill bg-blue-600" style="width: 85%;"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-4 pt-4 border-t border-gray-200">
+                            <div id="attendance-summary" class="text-gray-700">
+                                <p class="mb-2">Your attendance is currently on track. Keep up the good work!</p>
+                                <p>Minimum required attendance: <strong>75%</strong></p>
+                            </div>
+                            <div class="pt-4 border-t border-gray-200">
+                                <h3 class="font-semibold text-gray-700 mb-2">Action Required</h3>
+                                <ul class="list-disc pl-5 text-gray-700" id="action-items">
+                                    <!-- Action items will be dynamically populated -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Monthly Stats</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-gray-700">This Month</span>
+                            <span class="font-semibold text-gray-900" id="this-month-percentage">90%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-700">Last Month</span>
+                            <span class="font-semibold text-gray-900" id="last-month-percentage">82%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-700">Change</span>
+                            <span class="font-semibold text-green-600" id="month-change">+8%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div class="dashboard-card p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Subject Performance</h2>
+                <canvas id="subjectChart" height="300"></canvas>
+            </div>
+            <div class="dashboard-card p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Monthly Trend</h2>
+                <canvas id="trendChart" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- Improvement Tips Section -->
+        <div class="dashboard-card p-6 mt-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Attendance Improvement Tips</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 bg-blue-50 rounded-lg">
+                    <h3 class="font-bold text-blue-700 mb-2">Set Reminders</h3>
+                    <p class="text-gray-700">Set calendar alerts 30 minutes before each class to ensure you have time to prepare and arrive on time.</p>
+                </div>
+                <div class="p-4 bg-purple-50 rounded-lg">
+                    <h3 class="font-bold text-purple-700 mb-2">Sleep Schedule</h3>
+                    <p class="text-gray-700">Maintain a consistent sleep schedule to avoid oversleeping, especially for morning classes.</p>
+                </div>
+                <div class="p-4 bg-green-50 rounded-lg">
+                    <h3 class="font-bold text-green-700 mb-2">Weekly Review</h3>
+                    <p class="text-gray-700">Set aside time each weekend to review your attendance and plan improvements for the next week.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in a real implementation, this would come from your Flask backend
+        const student = {
+            name: "John Doe",
+            program: "Computer Science",
+            overall_attendance: 85,
+            total_classes: 225,
+            absent_days: 24,
+            current_streak: 3
+        };
+        
+        const attendanceData = [
+            { subject: "Programming", attended: 42, total: 45, percentage: 93 },
+            { subject: "Database Systems", attended: 38, total: 45, percentage: 84 },
+            { subject: "Web Development", attended: 35, total: 45, percentage: 78 },
+            { subject: "Computer Networks", attended: 30, total: 45, percentage: 67 },
+            { subject: "AI Fundamentals", attended: 25, total: 45, percentage: 56 }
+        ];
+        
+        const monthlyTrends = [
+            { month: "Jan", percentage: 82 },
+            { month: "Feb", percentage: 85 },
+            { month: "Mar", percentage: 80 },
+            { month: "Apr", percentage: 88 },
+            { month: "May", percentage: 85 }
+        ];
+        
+        // Monthly comparison data
+        const monthlyComparison = {
+            thisMonth: 90,
+            lastMonth: 82,
+            change: "+8%"
+        };
+        
+        // Initialize the dashboard with data
+        function initializeDashboard() {
+            // Update student information
+            document.getElementById('student-name').textContent = student.name;
+            document.getElementById('student-program').textContent = student.program;
+            document.getElementById('overall-attendance').textContent = `${student.overall_attendance}%`;
+            document.getElementById('total-classes').textContent = student.total_classes;
+            document.getElementById('attended-classes').textContent = `${student.overall_attendance}%`;
+            document.getElementById('absent-days').textContent = student.absent_days;
+            document.getElementById('current-streak').textContent = student.current_streak;
+            document.getElementById('progress-percentage').textContent = `${student.overall_attendance}%`;
+            
+            // Set the progress bar width
+            document.querySelector('.progress-fill').style.width = `${student.overall_attendance}%`;
+            
+            // Update the overall status badge
+            updateStatusBadge(student.overall_attendance);
+            
+            // Populate the attendance table
+            populateAttendanceTable();
+            
+            // Update monthly stats
+            document.getElementById('this-month-percentage').textContent = `${monthlyComparison.thisMonth}%`;
+            document.getElementById('last-month-percentage').textContent = `${monthlyComparison.lastMonth}%`;
+            document.getElementById('month-change').textContent = monthlyComparison.change;
+            
+            // Generate action items based on attendance data
+            generateActionItems();
+            
+            // Initialize charts
+            initializeCharts();
+        }
+        
+        function updateStatusBadge(percentage) {
+            const statusBadge = document.getElementById('overall-status');
+            
+            if (percentage >= 75) {
+                statusBadge.className = 'status-badge status-good';
+                statusBadge.textContent = 'GOOD';
+            } else if (percentage >= 60) {
+                statusBadge.className = 'status-badge status-warning';
+                statusBadge.textContent = 'WARNING';
+            } else {
+                statusBadge.className = 'status-badge status-risk';
+                statusBadge.textContent = 'AT RISK';
+            }
+        }
+        
+        function populateAttendanceTable() {
+            const tableBody = document.getElementById('attendance-data');
+            tableBody.innerHTML = '';
+            
+            attendanceData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Subject cell
+                const subjectCell = document.createElement('td');
+                subjectCell.textContent = item.subject;
+                row.appendChild(subjectCell);
+                
+                // Attended cell
+                const attendedCell = document.createElement('td');
+                attendedCell.textContent = item.attended;
+                row.appendChild(attendedCell);
+                
+                // Total cell
+                const totalCell = document.createElement('td');
+                totalCell.textContent = item.total;
+                row.appendChild(totalCell);
+                
+                // Percentage cell
+                const percentageCell = document.createElement('td');
+                percentageCell.textContent = `${item.percentage}%`;
+                row.appendChild(percentageCell);
+                
+                // Status cell
+                const statusCell = document.createElement('td');
+                let statusBadge;
+                
+                if (item.percentage >= 75) {
+                    statusBadge = `<span class="status-badge status-good">GOOD</span>`;
+                } else if (item.percentage >= 60) {
+                    statusBadge = `<span class="status-badge status-warning">WARNING</span>`;
+                } else {
+                    statusBadge = `<span class="status-badge status-risk">AT RISK</span>`;
+                }
+                
+                statusCell.innerHTML = statusBadge;
+                row.appendChild(statusCell);
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        function generateActionItems() {
+            const actionList = document.getElementById('action-items');
+            actionList.innerHTML = '';
+            
+            // Filter subjects that need attention
+            const lowAttendanceSubjects = attendanceData.filter(item => item.percentage < 75);
+            
+            if (lowAttendanceSubjects.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'No immediate actions required. Keep up the good work!';
+                actionList.appendChild(li);
+            } else {
+                lowAttendanceSubjects.forEach(subject => {
+                    const li = document.createElement('li');
+                    li.textContent = `Improve attendance in ${subject.subject} (${subject.percentage}%)`;
+                    actionList.appendChild(li);
+                });
+            }
+        }
+        
+        function initializeCharts() {
+            // Subject Performance Chart
+            const subjectCtx = document.getElementById('subjectChart').getContext('2d');
+            new Chart(subjectCtx, {
+                type: 'bar',
+                data: {
+                    labels: attendanceData.map(item => item.subject),
+                    datasets: [{
+                        label: 'Attendance %',
+                        data: attendanceData.map(item => item.percentage),
+                        backgroundColor: '#3b82f6',
+                        borderColor: '#1e3a8a',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Attendance Percentage'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

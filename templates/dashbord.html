@@ -1,0 +1,171 @@
+<!-- dashboard_nav.html - Include this in your other dashboard templates -->
+<div class="dashboard-nav">
+    <div class="logo-container">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="System Logo" class="nav-logo">
+        <h3>Attendance Management</h3>
+    </div>
+    
+    <div class="user-info">
+        <span class="username">{{ session.username }}</span>
+        <span class="role-badge {{ session.role.lower() }}">{{ session.role }}</span>
+    </div>
+    
+    <nav class="menu">
+        <h4>NAVIGATION</h4>
+        <ul>
+            {% if session.role == 'HOD' %}
+                <li><a href="/hod"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="/hod/faculty"><i class="fas fa-chalkboard-teacher"></i> Faculty Management</a></li>
+                <li><a href="/hod/students"><i class="fas fa-user-graduate"></i> Student Management</a></li>
+                <li><a href="/hod/timetable"><i class="fas fa-calendar-alt"></i> Timetable Management</a></li>
+                <li><a href="/hod/reports"><i class="fas fa-chart-line"></i> Attendance Reports</a></li>
+            {% elif session.role == 'faculty' %}
+                <li><a href="/faculty/{{ session.user_id }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="/faculty/{{ session.user_id }}/attendance"><i class="fas fa-clipboard-check"></i> Mark Attendance</a></li>
+                <li><a href="/faculty/{{ session.user_id }}/reports"><i class="fas fa-chart-bar"></i> View Reports</a></li>
+                <li><a href="/faculty/{{ session.user_id }}/timetable"><i class="fas fa-calendar-alt"></i> My Timetable</a></li>
+            {% elif session.role == 'student' %}
+                <li><a href="/student/{{ session.user_id }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="/student/{{ session.user_id }}/attendance"><i class="fas fa-clipboard-list"></i> My Attendance</a></li>
+                <li><a href="/student/{{ session.user_id }}/timetable"><i class="fas fa-calendar-alt"></i> Class Schedule</a></li>
+            {% endif %}
+            <li><a href="/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+        </ul>
+    </nav>
+    
+    <div class="nav-footer">
+        <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <div class="copyright">&copy; 2025 Student Attendance System</div>
+    </div>
+</div>
+
+<style>
+    .dashboard-nav {
+        background-color: #002147;
+        color: #fff;
+        width: 250px;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .logo-container {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .nav-logo {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 10px;
+    }
+    
+    .user-info {
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .username {
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 5px;
+    }
+    
+    .role-badge {
+        background-color: #3399ff;
+        color: white;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    
+    .role-badge.hod {
+        background-color: #e63946;
+    }
+    
+    .role-badge.faculty {
+        background-color: #457b9d;
+    }
+    
+    .role-badge.student {
+        background-color: #2a9d8f;
+    }
+    
+    .menu {
+        flex: 1;
+        padding: 15px 0;
+        overflow-y: auto;
+    }
+    
+    .menu h4 {
+        padding: 0 20px;
+        color: #999;
+        font-size: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .menu ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .menu li {
+        margin-bottom: 5px;
+    }
+    
+    .menu a {
+        display: block;
+        padding: 12px 20px;
+        color: #ddd;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+    
+    .menu a:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+    
+    .menu a i {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+    }
+    
+    .nav-footer {
+        padding: 15px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .logout-btn {
+        display: block;
+        padding: 10px;
+        text-align: center;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+    
+    .logout-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .copyright {
+        text-align: center;
+        font-size: 12px;
+        color: #999;
+    }
+</style>

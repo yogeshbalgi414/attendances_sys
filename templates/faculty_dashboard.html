@@ -1,0 +1,758 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Dashboard Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dashboard-card {
+            @apply bg-white rounded-2xl p-6 shadow-xl transition-all duration-300 hover:shadow-2xl backdrop-blur-lg bg-opacity-80 
+                   animate__animated animate__fadeInUp hover:-translate-y-1 border border-gray-100;
+        }
+        .time-table-cell {
+            @apply p-3 border rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 hover:shadow-md transition-all
+                   hover:border-blue-200 cursor-pointer transform hover:scale-[1.02];
+        }
+        .fc-event {
+            @apply rounded-lg p-2 text-sm cursor-pointer border-l-4;
+        }
+        .gradient-text {
+            background: linear-gradient(45deg, #4F46E5, #EC4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .glowing {
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 5px #ffffff88; }
+            to { box-shadow: 0 0 15px #ffffffaa; }
+        }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        .custom-scroll::-webkit-scrollbar-thumb { 
+            background: rgba(59, 130, 246, 0.3); 
+            border-radius: 4px;
+        }
+
+        .logout-button-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    
+    .logout-button {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        background-color: #f3f4f6;
+        color: #111827;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .logout-button:hover {
+        background-color: #e5e7eb;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .logout-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        color: #4b5563;
+    }
+    
+    /* For dark themes - add this class to the logout-button if needed */
+    .logout-button.dark {
+        background-color: #374151;
+        color: #f9fafb;
+        border-color: #4b5563;
+    }
+    
+    .logout-button.dark:hover {
+        background-color: #4b5563;
+    }
+    
+    .logout-button.dark .logout-icon {
+        color: #d1d5db;
+    }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen font-sans">
+    <!-- Hidden Data -->
+    <input type="hidden" id="latest_attendance_id" value="{{ latest_attendance_id }}">
+    <input type="hidden" id="latest_attendance_name" value="{{ latest_attendance_name }}">
+    <input type="hidden" id="currentSubject" value="{{ current_subject }}">
+
+    <div class="logout-button-container">
+    <a href="/logout" class="logout-button">
+        <svg xmlns="http://www.w3.org/2000/svg" class="logout-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        <span>Logout</span>
+    </a>
+</div>
+
+    <!-- Notification Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-50 w-80"></div>
+
+    <div class="container mx-auto p-8">
+        <!-- Enhanced Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 animate__animated animate__fadeInDown">
+            <div class="space-y-2">
+                <h1 class="text-4xl font-bold gradient-text mb-2">
+                    Welcome, <span class="text-blue-600">{{ faculty.name }}</span>
+                </h1>
+                <div class="flex items-center space-x-3">
+                    <span class="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-full text-sm font-semibold flex items-center">
+                        <i class="fas fa-book-open mr-2 text-indigo-600"></i>{{ current_subject }}
+                    </span>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full glowing"></span>
+                        <span class="text-sm text-gray-600">Live Tracking Active</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Enhanced Clock Card -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 transform transition-all hover:scale-[1.02]">
+                <div class="text-center space-y-2">
+                    <div class="text-4xl font-bold text-gray-800 font-mono" id="liveClock">--:--:--</div>
+                    <div class="text-sm text-gray-500 font-medium uppercase tracking-wide" id="liveDate">Loading...</div>
+                    <div class="pt-2">
+                        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                            <i class="fas fa-calendar-alt mr-1"></i>Week 15
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="dashboard-card bg-gradient-to-br from-blue-100 to-purple-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-600 mb-1">Total Students</p>
+                        <p class="text-3xl font-bold text-gray-800">142</p>
+                    </div>
+                    <i class="fas fa-users text-3xl text-blue-600 opacity-90"></i>
+                </div>
+                <div class="mt-4 h-1 bg-gray-200 rounded-full">
+                    <div class="h-full bg-blue-600 rounded-full w-3/4"></div>
+                </div>
+            </div>
+            
+            <div class="dashboard-card bg-gradient-to-br from-green-100 to-teal-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-600 mb-1">Attendance Rate</p>
+                        <p class="text-3xl font-bold text-gray-800">92%</p>
+                    </div>
+                    <i class="fas fa-chart-line text-3xl text-green-600 opacity-90"></i>
+                </div>
+                <div class="mt-4 h-1 bg-gray-200 rounded-full">
+                    <div class="h-full bg-green-600 rounded-full w-4/5"></div>
+                </div>
+            </div>
+
+            <div class="dashboard-card bg-gradient-to-br from-orange-100 to-pink-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-600 mb-1">Pending Actions</p>
+                        <p class="text-3xl font-bold text-gray-800">3</p>
+                    </div>
+                    <i class="fas fa-bell text-3xl text-orange-600 opacity-90"></i>
+                </div>
+                <div class="mt-4 h-1 bg-gray-200 rounded-full">
+                    <div class="h-full bg-orange-600 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Timetable & Calendar -->
+            <div class="dashboard-card lg:col-span-2">
+                <div class="flex gap-4 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-calendar-alt mr-2 text-purple-600"></i>Weekly Schedule
+                    </h2>
+                    <button onclick="openCalendarModal()" class="ml-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
+                    transform transition-all hover:scale-105 flex items-center">
+                        <i class="fas fa-calendar-check mr-2"></i>View Calendar
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 gap-3">
+                    {% for day, slots in calendar_data.items() %}
+                    <div class="time-table-cell">
+                        <h3 class="font-semibold text-lg mb-3 text-gray-700">{{ day }}</h3>
+                        <div class="space-y-2">
+                            {% for entry in slots %}
+                            <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="text-sm font-medium">
+                                            {{ entry.slot.start_time.strftime('%H:%M') }} - {{ entry.slot.end_time.strftime('%H:%M') }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            {% if entry.timetable %}
+                                                Occupied by {{ entry.timetable.subject }} (Faculty {{ entry.timetable.faculty_id }})
+                                                {% if entry.timetable.faculty_id == faculty.id %}
+                                                    <button onclick="cancelSlot({{ entry.slot.id }}, '{{ day }}', {{ faculty.id }})"
+                                                            class="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full hover:bg-red-200">
+                                                        Cancel
+                                                    </button>
+                                                {% endif %}
+                                            {% else %}
+                                                Free Slot
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    {% if not entry.timetable %}
+                                    <div class="flex flex-col space-y-2">
+                                        <button onclick="allocateSlot({{ entry.slot.id }}, {{ faculty.id }}, '{{ day }}')"
+                                                class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full hover:bg-green-200 
+                                                       transform transition-all hover:scale-105 w-full text-center">
+                                            <i class="fas fa-plus mr-1"></i>Allocate
+                                        </button>
+                                        <button onclick="addExtraClass({{ entry.slot.id }}, {{ faculty.id }}, '{{ day }}')"
+                                                class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full hover:bg-yellow-200 
+                                                       transform transition-all hover:scale-105 w-full text-center">
+                                            <i class="fas fa-clock mr-1"></i>Extra
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right Sidebar with Live Updates -->
+            <div class="dashboard-card">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-bolt mr-2 text-green-600"></i>Live Attendance
+                </h2>
+                <div id="liveUpdates" class="h-96 overflow-y-auto space-y-3 pr-2 custom-scroll">
+                    <!-- Real-time updates will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Insights Graph - Now below the timetable -->
+        <div class="dashboard-card mt-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-chart-pie mr-2 text-indigo-600"></i>Attendance Insights
+                </h2>
+                <button onclick="downloadAttendanceReport()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all">
+                    <i class="fas fa-file-download mr-1"></i>Download Report
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="h-64">
+                    <canvas id="subjectWiseAttendanceChart"></canvas>
+                </div>
+                <div class="h-64">
+                    <canvas id="dayWiseAttendanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row with Attendance Alerts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+            <div class="dashboard-card lg:col-span-3">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2 text-red-600"></i>Attendance Alerts
+                </h2>
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                    <div class="lg:col-span-1">
+                        <div class="h-48 w-48 mx-auto">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-3 space-y-3">
+                        {% for student, absences in frequent_absentees %}
+                        <div class="p-4 bg-red-50 rounded-xl border border-red-100 animate__animated animate__headShake">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user-slash text-red-600"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-red-700">{{ student.name }}</h3>
+                                        <p class="text-sm text-red-500">{{ absences }} recent absences</p>
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-right text-red-400"></i>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center p-4 bg-green-50 rounded-xl border border-green-100">
+                            <p class="text-green-600 font-medium flex items-center justify-center">
+                                <i class="fas fa-party-horn mr-2"></i>Perfect Attendance!
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Calendar Modal -->
+        <div id="calendarModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+            <div class="flex items-center justify-center min-h-screen">
+                <div class="bg-white rounded-xl p-8 w-full max-w-4xl max-h-[80vh] overflow-auto shadow-2xl">
+                    <div class="flex justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">Attendance Calendar</h3>
+                        <button onclick="closeCalendarModal()" class="text-gray-500 hover:text-gray-700 transform hover:rotate-90 transition-all">
+                            ✕
+                        </button>
+                    </div>
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.js"></script>
+    <script>
+        // Initialize Attendance Chart
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Absent', 'Late'],
+                datasets: [{
+                    data: [85, 10, 5],
+                    backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+                    borderWidth: 0,
+                    hoverOffset: 20
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Enhanced Toast Notification
+        function showCustomToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'animate__animated animate__fadeInRight bg-white p-4 rounded-lg shadow-xl border-l-4 border-blue-500 flex items-center';
+            toast.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-bell text-blue-500"></i>
+                </div>
+                <div>
+                    <p class="font-medium text-gray-800">${message}</p>
+                    <p class="text-sm text-gray-500">${new Date().toLocaleTimeString()}</p>
+                </div>
+            `;
+            
+            const container = document.getElementById('toastContainer');
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('animate__fadeOutRight');
+                setTimeout(() => container.removeChild(toast), 500);
+            }, 3000);
+        }
+
+        // Real-time Polling
+        let lastAttendanceId = parseInt(document.getElementById('latest_attendance_id').value) || 0;
+
+        async function checkNewAttendance() {
+            try {
+                const response = await fetch(window.location.href);
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const newId = parseInt(doc.getElementById('latest_attendance_id').value);
+                const studentName = doc.getElementById('latest_attendance_name').value;
+
+                if (newId > lastAttendanceId) {
+                    lastAttendanceId = newId;
+                    showCustomToast(`✅ ${studentName} has marked attendance!`);
+                    updateLiveFeed(studentName);
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }
+
+        function updateLiveFeed(studentName) {
+            const liveFeed = document.getElementById('liveUpdates');
+            const entry = document.createElement('div');
+            entry.className = 'bg-white p-3 rounded-lg shadow-sm mb-2 animate__animated animate__fadeIn border-l-4 border-green-500';
+            entry.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-medium">${studentName}</span>
+                    <span class="text-sm text-gray-500">${new Date().toLocaleTimeString()}</span>
+                </div>
+                <p class="text-sm text-green-600">Attendance marked successfully</p>
+            `;
+            liveFeed.prepend(entry);
+        }
+
+        // Calendar Implementation
+        let calendar;
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek'
+                },
+                events: async function(fetchInfo, successCallback) {
+                    try {
+                        const response = await fetch(`/get_attendance_events?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}`);
+                        const events = await response.json();
+                        successCallback(events);
+                    } catch (error) {
+                        console.error('Error loading events:', error);
+                    }
+                },
+                eventClick: function(info) {
+                    showAttendanceDetails(info.event);
+                }
+            });
+            calendar.render();
+        }
+
+        async function showAttendanceDetails(event) {
+            const response = await fetch(`/get_attendance_details?date=${event.startStr}`);
+            const details = await response.json();
+            alert(`Attendance on ${event.startStr}:\n${details.join('\n')}`);
+        }
+
+        function openCalendarModal() {
+            document.getElementById('calendarModal').classList.remove('hidden');
+            if (!calendar) initializeCalendar();
+        }
+
+        function closeCalendarModal() {
+            document.getElementById('calendarModal').classList.add('hidden');
+        }
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').textContent = now.toLocaleTimeString();
+            document.getElementById('liveDate').textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+        }
+
+        // Initialize
+        setInterval(checkNewAttendance, 2000);
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Original Functions
+        async function updateSlot(slotId) {
+            const timetableId = prompt("Enter the timetable ID to allocate to this slot:");
+            if (!timetableId) {
+                alert("Timetable ID is required.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/update_slot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ timetable_id: timetableId, new_slot_id: slotId })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error("Error updating slot:", error);
+            }
+        }
+
+        function allocateSlot(slotId, facultyId, day) {
+            const subject = document.getElementById("currentSubject").value;
+            if (!subject) {
+                alert("Subject not found for the logged-in user.");
+                return;
+            }
+
+            fetch('/api/allocate_slot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slot_id: slotId, faculty_id: facultyId, subject: subject, day: day })
+            })
+            .then(res => res.json())
+            .then(result => {
+                alert(result.message);
+                if (result.status === "success") {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error("Error allocating slot:", error);
+                alert("An error occurred while allocating the slot.");
+            });
+        }
+
+        function cancelSlot(slotId, day, facultyId) {
+            if (confirm("Are you sure you want to cancel this class?")) {
+                fetch('/cancel_slot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        slot_id: slotId,
+                        day: day,
+                        faculty_id: facultyId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+
+        function addExtraClass(slotId, facultyId, day) {
+            const subject = document.getElementById("currentSubject").value;
+            if (!subject) {
+                alert("Subject not found.");
+                return;
+            }
+
+            if (!confirm(`Add an extra class for ${subject} on ${day}?`)) return;
+
+            fetch('/api/extra_class', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slot_id: slotId, faculty_id: facultyId, subject: subject, day: day })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === "success") {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error("Error scheduling extra class:", error);
+                alert("Something went wrong.");
+            });
+        }
+
+        function loadAttendanceCharts() {
+            // Get the faculty ID from the URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const facultyId = urlParams.get('faculty_id') || window.location.pathname.split('/').pop();
+            
+            // Make API call to get attendance summary data
+            fetch(`/api/faculty_attendance_summary?faculty_id=${facultyId}`)
+            .then(res => res.json())
+            .then(data => {
+                const labels = Object.keys(data);
+                const values = Object.values(data);
+
+                new Chart(document.getElementById('subjectWiseAttendanceChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Classes Taken',
+                            data: values,
+                            backgroundColor: '#6366F1',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Sessions Count' }
+                            }
+                        }
+                    }
+                });
+
+                // Simulate attendance per day (dummy)
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                const dayData = [5, 8, 6, 4, 7];
+                new Chart(document.getElementById('dayWiseAttendanceChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: days,
+                        datasets: [{
+                            label: 'Attendance Events',
+                            data: dayData,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16,185,129,0.2)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { position: 'top' } },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error("Error loading attendance charts:", error);
+                // Show error message to user
+                const chartContainers = document.querySelectorAll('canvas');
+                chartContainers.forEach(container => {
+                    container.insertAdjacentHTML('afterend', 
+                        '<div class="text-red-500 text-center p-4">Failed to load chart data</div>');
+                });
+            });
+        }
+
+        function downloadAttendanceReport() {
+    // Show loading indicator
+    const downloadBtn = event.currentTarget;
+    const originalText = downloadBtn.innerHTML;
+    downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Generating Report...';
+    downloadBtn.disabled = true;
+    
+    // Generate dummy data
+    const students = [
+        { name: "Aditya Sharma", usn: "1MS21CS001", subject: "Python", attendance: 92 },
+        { name: "Bhavya Patel", usn: "1MS21CS015", subject: "Python", attendance: 88 },
+        { name: "Chetan Kumar", usn: "1MS21CS022", subject: "Python", attendance: 76 },
+        { name: "Divya Rao", usn: "1MS21CS033", subject: "Python", attendance: 98 },
+        { name: "Esha Verma", usn: "1MS21CS042", subject: "Python", attendance: 85 },
+        { name: "Faisal Ahmed", usn: "1MS21CS047", subject: "Python", attendance: 72 },
+        { name: "Gayatri Singh", usn: "1MS21CS055", subject: "Python", attendance: 94 },
+        { name: "Hrithik Nair", usn: "1MS21CS063", subject: "Python", attendance: 82 },
+        { name: "Ishika Gupta", usn: "1MS21CS074", subject: "Python", attendance: 90 },
+        { name: "Jai Sharma", usn: "1MS21CS078", subject: "Python", attendance: 79 },
+        { name: "Kavya Reddy", usn: "1MS21CS085", subject: "Python", attendance: 91 },
+        { name: "Lokesh Tiwari", usn: "1MS21CS094", subject: "Python", attendance: 84 },
+        { name: "Manisha Patil", usn: "1MS21CS103", subject: "Python", attendance: 95 },
+        { name: "Nikhil Deshpande", usn: "1MS21CS115", subject: "Python", attendance: 81 },
+        { name: "Pooja Hegde", usn: "1MS21CS124", subject: "Python", attendance: 89 }
+    ];
+    
+    // Get current subject from hidden field
+    const currentSubject = document.getElementById("currentSubject").value || "Python";
+    
+    try {
+        // Load SheetJS from CDN if not already loaded
+        if (typeof XLSX === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            document.head.appendChild(script);
+            
+            script.onload = function() {
+                generateExcel(students, currentSubject);
+            };
+        } else {
+            generateExcel(students, currentSubject);
+        }
+    } catch (error) {
+        console.error("Error generating Excel:", error);
+        alert("Error generating Excel report. Please try again.");
+        downloadBtn.innerHTML = originalText;
+        downloadBtn.disabled = false;
+    }
+    
+    function generateExcel(data, subject) {
+        try {
+            // Create worksheet
+            const ws = XLSX.utils.json_to_sheet(data);
+            
+            // Set column widths
+            const wscols = [
+                {wch: 20}, // Name
+                {wch: 12}, // USN
+                {wch: 20}, // Subject
+                {wch: 10}  // Attendance
+            ];
+            ws['!cols'] = wscols;
+            
+            // Add title row with styling
+            XLSX.utils.sheet_add_aoa(ws, 
+                [["ATTENDANCE REPORT - " + subject.toUpperCase()]], 
+                {origin: "A1"});
+            
+            // Merge cells for title
+            if(!ws['!merges']) ws['!merges'] = [];
+            ws['!merges'].push({s: {r: 0, c: 0}, e: {r: 0, c: 3}});
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            
+            // Generate Excel file
+            const currentDate = new Date().toISOString().slice(0, 10);
+            const filename = `${subject.replace(/\s+/g, '_')}_Attendance_${currentDate}.xlsx`;
+            
+            // Convert to binary and trigger download
+            XLSX.writeFile(wb, filename);
+            
+            // Show success message
+            showCustomToast("Attendance report downloaded successfully!");
+            
+            // Reset button
+            setTimeout(() => {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }, 500);
+        } catch (error) {
+            console.error("Error in Excel generation:", error);
+            alert("Failed to generate Excel report: " + error.message);
+            downloadBtn.innerHTML = originalText;
+            downloadBtn.disabled = false;
+        }
+    }
+}
+
+        window.onload = () => {
+            updateClock();
+            setTimeout(() => {
+                loadAttendanceCharts(); // Delay slightly
+            }, 300);
+            setInterval(updateClock, 1000);
+            setInterval(checkNewAttendance, 3000);
+        };
+    </script>
+</body>
+</html>
